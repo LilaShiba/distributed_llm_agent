@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  # ⚙️ Worker service replicated across Pis
+  worker:
+    image: rpi-llm-worker:latest
+    deploy:
+      replicas: 3           # Number of worker instances in the swarm
+      resources:
+        limits:
+          memory: 1G        # Limit memory to protect Pis
+    ports:
+      - target: 5000
+        published: 5000
+        protocol: tcp
+        mode: host          # Expose container port 5000 on host
+    networks:
+      - llm_network
+
+  # 🧭 Router service (single instance)
+  router:
+    image: rpi-llm-router:latest
+    ports:
+      - target: 8000
+        published: 8000
+        protocol: tcp
+    environment:
+      WORKER_SERVICE: worker  # Use service discovery for workers
+    deploy:
+      replicas: 1
+    networks:
+      - llm_network
+
+networks:
+  llm_network:
+    driver: overlay  # Swarm overlay network for multi-node communication
