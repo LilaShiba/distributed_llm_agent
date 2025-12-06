@@ -201,4 +201,3 @@ Configure logging drivers for centralized logging solutions.
 ### Backup and Restore
 
 Regularly backup your Docker volumes and Swarm configurations. Use `docker stack rm` to remove stacks and `docker swarm leave --force` to remove nodes from the swarm.
-

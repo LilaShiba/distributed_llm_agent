@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   router:
-    build: ./router
+    build: ../router
     image: llm-router:latest
     container_name: router
     ports:
@@ -10,12 +10,8 @@ services:
     environment:
       PORT: "5000"
       HOST: "0.0.0.0"
-      # Use service names for docker-compose DNS resolution
       WORKER_URLS: "http://worker1:5000,http://worker2:5000"
       LOG_LEVEL: "INFO"
-      HEALTH_TIMEOUT: "2"
-      REQUEST_TIMEOUT: "30"
-      MAX_RETRIES: "2"
     depends_on:
       - worker1
       - worker2
@@ -30,7 +26,7 @@ services:
       start_period: 5s
 
   worker1:
-    build: ./worker
+    build: ../worker
     image: llm-worker:latest
     container_name: worker1
     environment:
@@ -38,12 +34,12 @@ services:
       HOST: "0.0.0.0"
       MODEL_NAME: "distilgpt2"
       LOG_LEVEL: "INFO"
-      DO_SAMPLE: "True"
-      MAX_LENGTH: "100"
-      TEMPERATURE: "0.7"
     restart: unless-stopped
     networks:
       - llm_network
+    volumes:
+      - ../pdf_corpus:/app/pdf_corpus
+      - ../data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -52,7 +48,7 @@ services:
       start_period: 30s
 
   worker2:
-    build: ./worker
+    build: ../worker
     image: llm-worker:latest
     container_name: worker2
     environment:
@@ -60,12 +56,12 @@ services:
       HOST: "0.0.0.0"
       MODEL_NAME: "distilgpt2"
       LOG_LEVEL: "INFO"
-      DO_SAMPLE: "True"
-      MAX_LENGTH: "100"
-      TEMPERATURE: "0.7"
     restart: unless-stopped
     networks:
       - llm_network
+    volumes:
+      - ../pdf_corpus:/app/pdf_corpus
+      - ../data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -79,4 +75,4 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 10.10.0.0/16
+        - subnet: 10.10.1.0/24

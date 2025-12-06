@@ -2,22 +2,23 @@
 
 # === Local Docker Compose ===
 build:
-	docker compose build
+	docker build -t llm-router:latest ./router
+	docker build -t llm-worker:latest ./worker
 
 up:
-	docker compose up -d
+	docker compose -f routes/docker-compose.yml up -d
 
 down:
-	docker compose down
+	docker compose -f routes/docker-compose.yml down
 
 logs:
-	docker compose logs -f
+	docker compose -f routes/docker-compose.yml logs -f
 
 logs-router:
-	docker compose logs -f router
+	docker compose -f routes/docker-compose.yml logs -f router
 
 logs-worker:
-	docker compose logs -f worker1 worker2
+	docker compose -f routes/docker-compose.yml logs -f worker1 worker2
 
 health:
 	curl -s http://localhost:8000/health | jq .
@@ -30,61 +31,41 @@ test:
 errors:
 	curl -s http://localhost:8000/errors | jq .
 
-# === Docker Swarm ===
-swarm-build:
-	docker build -t llm-router:latest ./router
-	docker build -t llm-worker:latest ./worker
-
-swarm-deploy: swarm-build
-	docker stack deploy -c swarm-stack.yml llm_agent
-	@echo "Stack deployed. Checking status..."
-	sleep 3
-	docker stack ps llm_agent
-
-swarm-remove:
-	docker stack rm llm_agent
-
-swarm-logs-router:
-	docker service logs -f llm_agent_router
-
-swarm-logs-worker:
-	docker service logs -f llm_agent_llm_worker
-
-swarm-health:
-	curl -s http://localhost:8000/health | jq .
-
-swarm-test:
-	curl -s -X POST http://localhost:8000/chat \
-		-H "Content-Type: application/json" \
-		-d '{"prompt": "Hello"}' | jq .
-
-swarm-workers:
-	docker service ps llm_agent_llm_worker
-
-# === Cleanup ===
 clean:
 	docker system prune -af
-	rm -rf logs/*.log*
+	rm -rf logs/*.log* data/*
+
+# === Docker Swarm ===
+swarm-build:
+	@echo "Building router and worker images for swarm..."
+	docker build -t distributed_llm_agent_router:latest ./router
+	docker build -t distributed_llm_agent_worker:latest ./worker
+	@echo "Done"
+
+swarm-deploy: swarm-build
+	@echo "Deploying stack to swarm..."
+	docker stack deploy -c routes/swarm-stack.yml llm_agent
+	@echo "Done"
+
+swarm-remove:
+	@echo "Removing stack from swarm..."
+	docker stack rm llm_agent || true
+	@echo "Done"
 
 help:
-	@echo "Zen LLM Agent - Commands"
+	@echo "zen llm agent"
 	@echo ""
-	@echo "Local Docker Compose:"
-	@echo "  make build         - Build Docker images"
-	@echo "  make up            - Start services"
-	@echo "  make down          - Stop services"
-	@echo "  make logs          - View all logs"
-	@echo "  make health        - Check router health"
-	@echo "  make test          - Send test prompt"
-	@echo "  make errors        - View error summary"
+	@echo "make build        build docker images"
+	@echo "make up           start services (routes/docker-compose.yml)"
+	@echo "make down         stop services"
+	@echo "make logs         watch all logs"
+	@echo "make logs-router  router logs only"
+	@echo "make logs-worker  worker logs only"
+	@echo "make health       check router health"
+	@echo "make test         send test prompt"
+	@echo "make errors       show error summary"
+	@echo "make clean        cleanup docker/logs/data"
 	@echo ""
-	@echo "Docker Swarm:"
-	@echo "  make swarm-deploy  - Deploy to Swarm"
-	@echo "  make swarm-remove  - Remove from Swarm"
-	@echo "  make swarm-health  - Check health"
-	@echo "  make swarm-test    - Send test prompt"
-	@echo "  make swarm-workers - List worker tasks"
-	@echo ""
-	@echo "Maintenance:"
-	@echo "  make clean         - Clean up Docker"
-	@echo "  make help          - Show this help"
+	@echo "make swarm-build  build images for swarm"
+	@echo "make swarm-deploy deploy to swarm (routes/swarm-stack.yml)"
+	@echo "make swarm-remove remove swarm stack"
