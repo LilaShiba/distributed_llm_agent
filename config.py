@@ -10,13 +10,13 @@ LOGS_DIR = os.getenv("LOGS_DIR", "logs")
 # Network
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", 5000))
-WORKER_URLS = os.getenv("WORKER_URLS", "http://localhost:5001,http://localhost:5002")
-
-# Docker Swarm: set a single service name (e.g. 'worker') to let Swarm LB handle routing
+WORKER_URLS = os.getenv(
+    "WORKER_URLS", "http://worker1:5000,http://worker2:5000"
+)
 WORKER_SERVICE = os.getenv("WORKER_SERVICE", "")
 WORKER_PORT = int(os.getenv("WORKER_PORT", 5000))
 
-# Timeouts
+# Timeouts (seconds)
 HEALTH_TIMEOUT = int(os.getenv("HEALTH_TIMEOUT", 2))
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", 30))
 MAX_RETRIES = int(os.getenv("MAX_RETRIES", 2))
@@ -26,3 +26,15 @@ MODEL_NAME = os.getenv("MODEL_NAME", "distilgpt2")
 MAX_LENGTH = int(os.getenv("MAX_LENGTH", 100))
 TEMPERATURE = float(os.getenv("TEMPERATURE", 0.7))
 DO_SAMPLE = os.getenv("DO_SAMPLE", "True").lower() == "true"
+
+# Ensure all required variables are set
+required_vars = [
+    "DEBUG", "LOG_LEVEL", "LOGS_DIR",
+    "HOST", "PORT", "WORKER_URLS", "WORKER_SERVICE", "WORKER_PORT",
+    "HEALTH_TIMEOUT", "REQUEST_TIMEOUT", "MAX_RETRIES",
+    "MODEL_NAME", "MAX_LENGTH", "TEMPERATURE", "DO_SAMPLE"
+]
+
+for var in required_vars:
+    if os.getenv(var) is None:
+        raise EnvironmentError(f"Required environment variable '{var}' is not set.")

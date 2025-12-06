@@ -10,11 +10,24 @@ services:
     environment:
       PORT: "5000"
       HOST: "0.0.0.0"
+      # Use service names for docker-compose DNS resolution
       WORKER_URLS: "http://worker1:5000,http://worker2:5000"
       LOG_LEVEL: "INFO"
+      HEALTH_TIMEOUT: "2"
+      REQUEST_TIMEOUT: "30"
+      MAX_RETRIES: "2"
     depends_on:
       - worker1
       - worker2
+    restart: unless-stopped
+    networks:
+      - llm_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
 
   worker1:
     build: ./worker
@@ -25,6 +38,18 @@ services:
       HOST: "0.0.0.0"
       MODEL_NAME: "distilgpt2"
       LOG_LEVEL: "INFO"
+      DO_SAMPLE: "True"
+      MAX_LENGTH: "100"
+      TEMPERATURE: "0.7"
+    restart: unless-stopped
+    networks:
+      - llm_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   worker2:
     build: ./worker
@@ -35,3 +60,19 @@ services:
       HOST: "0.0.0.0"
       MODEL_NAME: "distilgpt2"
       LOG_LEVEL: "INFO"
+      DO_SAMPLE: "True"
+      MAX_LENGTH: "100"
+      TEMPERATURE: "0.7"
+    restart: unless-stopped
+    networks:
+      - llm_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  llm_network:
+    driver: bridge

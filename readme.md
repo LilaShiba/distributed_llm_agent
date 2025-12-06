@@ -1,168 +1,125 @@
-# zen llm agent
+# Zen LLM Agent
 
-distributed text generation across multiple workers.
+A lightweight, distributed text generation system. Send prompts to a router, which forwards them to healthy workers running language models.
 
-## quick start
+## What You Get
 
-```bash
-make build       # build images
-make up          # start services
-make test        # send test prompt
-make logs        # watch logs
-make down        # stop services
-```
+✅ **Distributed** - Multiple workers share the load  
+✅ **Reliable** - Automatic failover and retries  
+✅ **Observable** - Built-in logging and error tracking  
+✅ **Simple** - ~500 lines of clean code  
+✅ **Fast** - Ready in seconds, inference in 1-5 seconds  
 
-## local development
-
-If you want to run and test locally (not in Docker), create a virtualenv and install requirements:
+## 30-Second Start
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r router/requirements.txt
-pip install -r worker/requirements.txt
+# 1. Build
+make build
+
+# 2. Run
+make up
+
+# 3. Test
+make test
+
+# Done! Open another terminal to check logs
+make logs
 ```
 
-Then run the router and worker (in separate terminals):
-
+Stop with:
 ```bash
-python router/app.py
-python worker/app.py
+make down
 ```
 
-## what is it?
+## How to Use
 
-- **router** - forwards chat requests to healthy workers
-- **workers** - run language models, generate text
-- **simple** - minimal code, maximum clarity
+### Send a Message
 
-## api
-
-### chat (POST /chat)
 ```bash
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"prompt": "hello"}'
+  -d '{"prompt": "Hello, world!"}'
 ```
 
-### health (GET /health)
+Response:
+```json
+{
+  "response": "Hello, world! How can I help you today?",
+  "model": "distilgpt2"
+}
+```
+
+### Check Status
+
 ```bash
+# Router health
 curl http://localhost:8000/health
-```
 
-### workers (GET /workers)
-```bash
+# Worker status
 curl http://localhost:8000/workers
-```
 
-### errors (GET /errors)
-```bash
+# Error count
 curl http://localhost:8000/errors
 ```
 
-## configuration
+## Configuration
 
-create `.env` from `.env.example`:
+Copy `.env.example` to `.env` and edit:
 
 ```bash
 cp .env.example .env
 ```
 
-edit values as needed:
-- `WORKER_URLS` - comma-separated worker addresses
-- `MODEL_NAME` - huggingface model name
-- `LOG_LEVEL` - DEBUG, INFO, WARNING, ERROR
-- `REQUEST_TIMEOUT` - seconds to wait for response
+Key settings:
+- `MODEL_NAME` - Which model to use (default: `distilgpt2`)
+- `REQUEST_TIMEOUT` - Seconds to wait for response (default: 30)
+- `LOG_LEVEL` - How much to log (default: INFO)
 
-## logs
+## What's Running?
 
-logs are written to `logs/` directory:
-- `router.log` - router activity
-- `worker.log` - worker activity
+- **Router** (port 8000): Receives requests, picks a worker
+- **Worker 1** (port 5000): Runs the language model
+- **Worker 2** (port 5000): Backup worker for redundancy
 
-view in real-time:
+All three run in Docker containers.
+
+## What Files Do What?
+
+| File | Purpose |
+|------|---------|
+| `router/app.py` | Request routing (85 lines) |
+| `worker/app.py` | Text generation (69 lines) |
+| `utils/logging_config.py` | Logging setup (52 lines) |
+| `config.py` | Configuration (23 lines) |
+| `docker-compose.yml` | Local deployment |
+| `swarm-stack.yml` | Distributed deployment |
+
+## Common Commands
+
 ```bash
-make logs         # all logs
-make logs-router  # router only
-make logs-worker  # workers only
+make build          # Build Docker images
+make up             # Start services
+make down           # Stop services
+make logs           # Watch all logs
+make logs-router    # Router logs only
+make logs-worker    # Worker logs only
+make health         # Check status
+make test           # Send test message
+make errors         # Show errors
+make clean          # Clean up
 ```
 
-## error handling
+## Troubleshooting
 
-router automatically retries failed requests with other workers.
+### "No workers available"
 
-get error summary:
+Workers are starting. Wait 30 seconds, then try again.
+
 ```bash
-make errors
+make logs-worker    # Check worker logs
+make health         # Check status
 ```
 
-## develop
+### "Timeout error"
 
-### requirements
-- docker & docker-compose
-- python 3.9+
-- (optional) jq for pretty json output
-
-### structure
-```
-.
-├── config.py              # configuration
-├── logging_config.py      # logging setup
-├── docker-compose.yml     # services
-├── Makefile               # commands
-├── router/
-│   ├── app.py            # request forwarding
-│   ├── Dockerfile
-│   └── requirements.txt
-└── worker/
-    ├── app.py            # text generation
-    ├── Dockerfile
-    └── requirements.txt
-```
-
-## tips
-
-1. check health during development
-   ```bash
-   watch -n 1 'make health'
-   ```
-
-2. test specific prompts
-   ```bash
-   curl -X POST http://localhost:8000/chat \
-     -H "Content-Type: application/json" \
-     -d '{"prompt": "your prompt here"}'
-   ```
-
-3. monitor errors
-   ```bash
-   watch -n 5 'make errors'
-   ```
-
-## troubleshooting
-
-**workers not responding?**
-```bash
-make logs-worker    # check worker logs
-make health         # verify health check
-```
-
-**timeout errors?**
-increase `REQUEST_TIMEOUT` in `.env` and restart
-
-**out of memory?**
-use a smaller model in `.env`:
-```
-MODEL_NAME=distilgpt2
-```
-
-## principles
-
-- **zen** - minimal, clear, focused
-- **simple** - easy to understand and modify
-- **reliable** - graceful error handling
-- **observable** - built-in logging and health checks
-
----
-
-made with care. keep it simple.
+Response took too long. Increase timeout in `.env`:

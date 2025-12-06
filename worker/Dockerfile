@@ -1,21 +1,17 @@
-# Use a full Debian-based Python image for ARM
-FROM python:3.11-bullseye
+# Use lightweight Python image
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies needed for PyTorch and Transformers
-RUN apt-get update && apt-get install -y \
+# Install system dependencies needed for transformers
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libopenblas-dev \
-    libblas-dev \
-    libffi-dev \
-    libssl-dev \
-    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip and wheel
-RUN python -m pip install --upgrade pip wheel setuptools
+RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # Copy requirements and install
 COPY requirements.txt .
@@ -24,12 +20,12 @@ RUN pip install --no-cache-dir --default-timeout=200 -r requirements.txt
 # Copy worker code
 COPY . .
 
-# Expose worker port
+# Expose port 5000 (Gunicorn listens here)
 EXPOSE 5000
 
-# Health check
+# Health check - tests internal port
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:5000/health', timeout=5)"
+    CMD curl -f http://localhost:5000/health || exit 1
 
-# Run with Gunicorn for better production performance
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "120", "app:app"]
+# Run with Gunicorn for production
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "120", "--access-logfile", "-", "app:app"]
