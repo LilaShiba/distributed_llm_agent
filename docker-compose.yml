@@ -1,32 +1,37 @@
 version: "3.8"
 
 services:
-  # 🧭 Router service (central API)
   router:
     build: ./router
-    image: rpi-llm-router:latest
+    image: llm-router:latest
     container_name: router
     ports:
-      - "8000:8000"
+      - "8000:5000"
     environment:
-      # Comma-separated list of worker endpoints
+      PORT: "5000"
+      HOST: "0.0.0.0"
       WORKER_URLS: "http://worker1:5000,http://worker2:5000"
+      LOG_LEVEL: "INFO"
     depends_on:
       - worker1
       - worker2
 
-  # ⚙️ Worker 1
   worker1:
     build: ./worker
-    image: rpi-llm-worker:latest
+    image: llm-worker:latest
     container_name: worker1
-    ports:
-      - "5001:5000"
+    environment:
+      PORT: "5000"
+      HOST: "0.0.0.0"
+      MODEL_NAME: "distilgpt2"
+      LOG_LEVEL: "INFO"
 
-  # ⚙️ Worker 2
   worker2:
     build: ./worker
-    image: rpi-llm-worker:latest
+    image: llm-worker:latest
     container_name: worker2
-    ports:
-      - "5002:5000"
+    environment:
+      PORT: "5000"
+      HOST: "0.0.0.0"
+      MODEL_NAME: "distilgpt2"
+      LOG_LEVEL: "INFO"

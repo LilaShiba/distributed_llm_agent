@@ -1,44 +1,60 @@
-# Makefile for Raspberry Pi LLM Chatbot Hub
-# Provides convenient shortcuts for building, testing, and deploying.
+.PHONY: build up down logs health test clean help
 
-# Variables
-PROJECT_NAME = llm_hub
-COMPOSE_FILE = docker-compose.yml
-STACK_FILE = swarm-stack.yml
-
-# Default registry (optional, can be overridden on command line)
-REGISTRY ?= local
-
-# 🧱 Build all Docker images (router + worker)
 build:
-	docker build -t $(REGISTRY)/rpi-llm-router:latest ./router
-	docker build -t $(REGISTRY)/rpi-llm-worker:latest ./worker
+	docker build -t llm-router:latest ./router
+	docker build -t llm-worker:latest ./worker
 
-# 🧱 Run locally using Docker Compose
 up:
-	docker compose -f $(COMPOSE_FILE) up -d --remove-orphans
+	docker compose up -d --remove-orphans
 
-# 🧱 Stop and remove all containers
 down:
-	docker compose -f $(COMPOSE_FILE) down
+	docker compose down
 
-# 🧱 View logs from all services
 logs:
-	docker compose -f $(COMPOSE_FILE) logs -f
+	docker compose logs -f
 
-# 🧱 Deploy to Docker Swarm (Pi cluster)
-swarm-deploy:
-	docker stack deploy -c $(STACK_FILE) $(PROJECT_NAME)
+logs-router:
+	docker compose logs -f router
 
-# 🧱 Remove Swarm stack
-swarm-remove:
-	docker stack rm $(PROJECT_NAME)
+logs-worker:
+	docker compose logs -f worker1 worker2
 
-# 🧱 List running containers and nodes
-status:
-	docker ps
-	docker node ls || true
+health:
+	curl -s http://localhost:8000/health | jq .
 
-# 🧱 Clean up dangling images and containers
+test:
+	curl -s -X POST http://localhost:8000/chat \
+		-H "Content-Type: application/json" \
+		-d '{"prompt": "Hello"}' | jq .
+
+errors:
+	curl -s http://localhost:8000/errors | jq .
+
 clean:
 	docker system prune -af
+	rm -rf logs/*.log*
+
+# Docker Swarm convenience targets
+swarm-deploy:
+	@echo "Building router and worker images for swarm..."
+	docker build -t distributed_llm_agent_router:latest ./router
+	docker build -t distributed_llm_agent_worker:latest ./worker
+	@echo "Deploying stack to swarm..."
+	docker stack deploy -c swarm-stack.yml llm_stack
+
+swarm-remove:
+	@echo "Removing stack from swarm..."
+	docker stack rm llm_stack || true
+	@echo "Done"
+
+help:
+	@echo "zen llm agent"
+	@echo ""
+	@echo "make build        build docker images"
+	@echo "make up           start services"
+	@echo "make down         stop services"
+	@echo "make logs         watch all logs"
+	@echo "make health       check router health"
+	@echo "make test         send test prompt"
+	@echo "make errors       show error summary"
+	@echo "make clean        cleanup docker and logs"

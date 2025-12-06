@@ -1,3 +1,5 @@
-flask==2.3.3
-transformers==4.44.0
-torch==2.1.0
+flask==3.0.0
+transformers==4.40.2
+# torch is optional on small devices; install only when available
+# torch==2.2.1
+gunicorn==21.2.0
