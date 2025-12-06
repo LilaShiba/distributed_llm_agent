@@ -76,3 +76,7 @@ services:
 networks:
   llm_network:
     driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.10.0.0/16

@@ -7,8 +7,11 @@ version: '3.8'
 networks:
   llm_network:
     driver: overlay
-    driver_opts:
-      com.docker.network.driver.overlay.vxlan_list: "4789"
+    attachable: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.10.0.0/16
 
 services:
   # Router: receives requests and forwards to healthy workers
