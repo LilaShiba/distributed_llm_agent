@@ -45,17 +45,17 @@ docker stack rm llm_agent
 
 - Docker installed on all machines
 - All machines can reach each other (same network)
-- Manager machine has IP address (e.g., `192.168.1.10`)
+- Manager machine has IP address (e.g., `111.111.1.11`)
 
 ### Step 1: Initialize Manager
 
 On the **manager machine** only:
 
 ```bash
-docker swarm init --advertise-addr 192.168.1.10
+docker swarm init --advertise-addr 111.111.1.11
 ```
 
-Replace `192.168.1.10` with your manager's IP address.
+Replace `111.111.1.11` with your manager's IP address.
 
 Copy the output. You'll see:
 
@@ -64,7 +64,7 @@ Swarm initialized: current node is now the manager.
 
 To add a worker to this swarm, run the following command:
 
-    docker swarm join --token SWMTKN-1-0g... 192.168.1.10:2377
+    docker swarm join --token SWMTKN-1-0g... 111.111.1.11:2377
 
 To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
 ```
@@ -74,7 +74,7 @@ To add a manager to this swarm, run 'docker swarm join-token manager' and follow
 On each worker node, run the join command from the manager's output:
 
 ```bash
-docker swarm join --token SWMTKN-1-0g... 192.168.1.10:2377
+docker swarm join --token SWMTKN-1-0g... 111.111.1.11:2377
 ```
 
 ### Step 3: Verify Cluster
