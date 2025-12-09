@@ -34,6 +34,11 @@ services:
       HOST: "0.0.0.0"
       MODEL_NAME: "distilgpt2"
       LOG_LEVEL: "INFO"
+      DPR_QUESTION_ENCODER: "facebook/dpr-question_encoder-single-nq-base"
+      DPR_CONTEXT_ENCODER: "facebook/dpr-ctx_encoder-single-nq-base"
+      PDF_DIR: "pdf_corpus"
+      DATA_DIR: "data"
+      ENCODE_BATCH: "32"
     restart: unless-stopped
     networks:
       - llm_network
@@ -56,6 +61,11 @@ services:
       HOST: "0.0.0.0"
       MODEL_NAME: "distilgpt2"
       LOG_LEVEL: "INFO"
+      DPR_QUESTION_ENCODER: "facebook/dpr-question_encoder-single-nq-base"
+      DPR_CONTEXT_ENCODER: "facebook/dpr-ctx_encoder-single-nq-base"
+      PDF_DIR: "pdf_corpus"
+      DATA_DIR: "data"
+      ENCODE_BATCH: "32"
     restart: unless-stopped
     networks:
       - llm_network
