@@ -146,7 +146,8 @@ def encode_question(question: str) -> np.ndarray:
     with torch.no_grad():
         outputs = q_model(**inputs)
         # Use CLS token (first token) from last hidden state for DPR models
-        embedding = outputs.last_hidden_state[0, 0, :].cpu().numpy()
+        # outputs.last_hidden_state has shape [batch_size, seq_len, hidden_dim]
+        embedding = outputs.last_hidden_state[:, 0, :][0].cpu().numpy()
     
     # Normalize for cosine similarity
     norm = np.linalg.norm(embedding)
