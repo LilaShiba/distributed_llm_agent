@@ -32,6 +32,6 @@ DPR_QUESTION_ENCODER = os.getenv("DPR_QUESTION_ENCODER", "facebook/dpr-question_
 DPR_CONTEXT_ENCODER = os.getenv("DPR_CONTEXT_ENCODER", "facebook/dpr-ctx_encoder-single-nq-base")
 PDF_DIR = os.getenv("PDF_DIR", "pdf_corpus")
 DATA_DIR = os.getenv("DATA_DIR", "data")
-ENCODE_BATCH = int(os.getenv("ENCODE_BATCH", 32))
+ENCODE_BATCH = int(os.getenv("ENCODE_BATCH", "32"))
 
 # All variables have defaults, so no need for strict checking
