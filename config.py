@@ -34,14 +34,4 @@ PDF_DIR = os.getenv("PDF_DIR", "pdf_corpus")
 DATA_DIR = os.getenv("DATA_DIR", "data")
 ENCODE_BATCH = int(os.getenv("ENCODE_BATCH", 32))
 
-# Ensure all required variables are set
-required_vars = [
-    "DEBUG", "LOG_LEVEL", "LOGS_DIR",
-    "HOST", "PORT", "WORKER_URLS", "WORKER_SERVICE", "WORKER_PORT",
-    "HEALTH_TIMEOUT", "REQUEST_TIMEOUT", "MAX_RETRIES",
-    "MODEL_NAME", "MAX_LENGTH", "TEMPERATURE", "DO_SAMPLE"
-]
-
-for var in required_vars:
-    if os.getenv(var) is None:
-        raise EnvironmentError(f"Required environment variable '{var}' is not set.")
+# All variables have defaults, so no need for strict checking
