@@ -46,7 +46,9 @@ services:
     environment:
       HOST: "0.0.0.0"
       PORT: "5000"
-      MODEL_NAME: "distilgpt2"
+      DPR_QUESTION_ENCODER: "facebook/dpr-question_encoder-single-nq-base"
+      DPR_CONTEXT_ENCODER: "facebook/dpr-ctx_encoder-single-nq-base"
+      ENCODE_BATCH: "32"
       LOG_LEVEL: "INFO"
     deploy:
       mode: replicated
