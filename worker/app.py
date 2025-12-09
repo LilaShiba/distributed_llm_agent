@@ -1,5 +1,9 @@
 """
-Worker — simple retrieval over PDFs.
+Worker — DPR-based retrieval over PDFs.
+
+Uses Dense Passage Retrieval (DPR) with separate encoders:
+- Question encoder: encodes user queries
+- Context encoder: encodes document passages
 
 Short and sweet:
 - Put PDFs in pdf_corpus/
@@ -16,14 +20,15 @@ import sys
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
+import torch
 from flask import Flask, jsonify, request
 from pypdf import PdfReader
-from sentence_transformers import SentenceTransformer
+from transformers import AutoModel, AutoTokenizer
 from werkzeug.utils import secure_filename
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import HOST, PORT, LOG_LEVEL
+from config import HOST, PORT, LOG_LEVEL, DPR_QUESTION_ENCODER, DPR_CONTEXT_ENCODER, ENCODE_BATCH
 from utils.logging_config import error_tracker, setup_logger
 
 app = Flask(__name__)
@@ -31,8 +36,6 @@ log = setup_logger("worker", LOG_LEVEL)
 
 # Simple config / globals
 PDF_DIR = os.getenv("PDF_DIR", "pdf_corpus")
-MODEL_NAME = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")  # SentenceTransformer model id
-BATCH_SIZE = int(os.getenv("ENCODE_BATCH", "32"))
 DATA_DIR = os.getenv("DATA_DIR", "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -40,18 +43,112 @@ PERSIST_CHUNKS = os.path.join(DATA_DIR, "corpus_chunks.json")
 PERSIST_EMB = os.path.join(DATA_DIR, "corpus_embeddings.npz")
 PERSIST_META = os.path.join(DATA_DIR, "meta.json")
 
-_model: Optional[SentenceTransformer] = None
+# DPR models (loaded on demand)
+_question_encoder: Optional[AutoModel] = None
+_question_tokenizer: Optional[AutoTokenizer] = None
+_context_encoder: Optional[AutoModel] = None
+_context_tokenizer: Optional[AutoTokenizer] = None
+
 corpus_chunks: List[str] = []
 corpus_embeddings: Optional[np.ndarray] = None
 
 
-def load_model() -> SentenceTransformer:
-    """Load (once) the sentence-transformer used for embeddings."""
-    global _model
-    if _model is None:
-        log.info("Loading embeddings model: %s", MODEL_NAME)
-        _model = SentenceTransformer(MODEL_NAME)
-    return _model
+def load_dpr_models() -> Tuple[AutoModel, AutoTokenizer, AutoModel, AutoTokenizer]:
+    """Load DPR question and context encoders (once)."""
+    global _question_encoder, _question_tokenizer, _context_encoder, _context_tokenizer
+    
+    if _question_encoder is None:
+        log.info("Loading DPR question encoder: %s", DPR_QUESTION_ENCODER)
+        _question_tokenizer = AutoTokenizer.from_pretrained(DPR_QUESTION_ENCODER)
+        _question_encoder = AutoModel.from_pretrained(DPR_QUESTION_ENCODER)
+        _question_encoder.eval()
+        
+        # Move to GPU if available
+        if torch.cuda.is_available():
+            _question_encoder = _question_encoder.cuda()
+            log.info("Question encoder moved to GPU")
+    
+    if _context_encoder is None:
+        log.info("Loading DPR context encoder: %s", DPR_CONTEXT_ENCODER)
+        _context_tokenizer = AutoTokenizer.from_pretrained(DPR_CONTEXT_ENCODER)
+        _context_encoder = AutoModel.from_pretrained(DPR_CONTEXT_ENCODER)
+        _context_encoder.eval()
+        
+        # Move to GPU if available
+        if torch.cuda.is_available():
+            _context_encoder = _context_encoder.cuda()
+            log.info("Context encoder moved to GPU")
+    
+    return _question_encoder, _question_tokenizer, _context_encoder, _context_tokenizer
+
+
+def encode_passages(passages: List[str]) -> np.ndarray:
+    """Encode passages using DPR context encoder."""
+    _, _, ctx_model, ctx_tokenizer = load_dpr_models()
+    
+    embeddings_list = []
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    
+    # Process in batches
+    for i in range(0, len(passages), ENCODE_BATCH):
+        batch = passages[i : i + ENCODE_BATCH]
+        
+        # Tokenize batch
+        inputs = ctx_tokenizer(
+            batch,
+            padding=True,
+            truncation=True,
+            max_length=512,
+            return_tensors="pt"
+        ).to(device)
+        
+        # Encode
+        with torch.no_grad():
+            outputs = ctx_model(**inputs)
+            # Use pooler_output (CLS token representation)
+            batch_embeddings = outputs.pooler_output.cpu().numpy()
+        
+        embeddings_list.append(batch_embeddings)
+        
+        if (i // ENCODE_BATCH + 1) % 10 == 0:
+            log.info("Encoded %d/%d passages", min(i + ENCODE_BATCH, len(passages)), len(passages))
+    
+    # Concatenate all batches
+    embeddings = np.vstack(embeddings_list)
+    
+    # Normalize embeddings for cosine similarity
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+    embeddings = embeddings / (norms + 1e-8)
+    
+    return embeddings
+
+
+def encode_question(question: str) -> np.ndarray:
+    """Encode a question using DPR question encoder."""
+    q_model, q_tokenizer, _, _ = load_dpr_models()
+    
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    
+    # Tokenize question
+    inputs = q_tokenizer(
+        question,
+        padding=True,
+        truncation=True,
+        max_length=512,
+        return_tensors="pt"
+    ).to(device)
+    
+    # Encode
+    with torch.no_grad():
+        outputs = q_model(**inputs)
+        # Use pooler_output (CLS token representation)
+        embedding = outputs.pooler_output.cpu().numpy()[0]
+    
+    # Normalize for cosine similarity
+    norm = np.linalg.norm(embedding)
+    embedding = embedding / (norm + 1e-8)
+    
+    return embedding
 
 
 def chunk_text(text: str, max_chars: int = 1000) -> List[str]:
@@ -129,7 +226,7 @@ def prepare_corpus() -> None:
     If unchanged, reuse saved embeddings. Otherwise rebuild and save.
     """
     global corpus_chunks, corpus_embeddings
-    load_model()
+    load_dpr_models()
     current_meta = _scan_meta(PDF_DIR)
     persisted_chunks, persisted_embeddings, persisted_meta = _load_persisted()
 
@@ -147,24 +244,17 @@ def prepare_corpus() -> None:
         log.warning("No PDFs found in %s", PDF_DIR)
         return
 
-    model = load_model()
-    corpus_embeddings = model.encode(
-        corpus_chunks,
-        batch_size=BATCH_SIZE,
-        convert_to_numpy=True,
-        show_progress_bar=False,
-        normalize_embeddings=True,
-    )
+    corpus_embeddings = encode_passages(corpus_chunks)
     _save_persisted(corpus_chunks, corpus_embeddings, current_meta)
     log.info("Corpus built and saved (%d passages).", len(corpus_chunks))
 
 
 def find_top_k(query: str, k: int = 3) -> List[Tuple[str, float]]:
-    """Encode query and return top-k passages with cosine scores."""
+    """Encode query using DPR question encoder and return top-k passages with cosine scores."""
     if not corpus_chunks or corpus_embeddings is None:
         return [("No corpus loaded.", 0.0)]
-    model = load_model()
-    q_vec = model.encode([query], convert_to_numpy=True, normalize_embeddings=True)[0]  # (dim,)
+    
+    q_vec = encode_question(query)
     sims = np.dot(corpus_embeddings, q_vec)  # cosine since both normalized
     top_idx = np.argsort(-sims)[:k]
     return [(corpus_chunks[int(i)], float(sims[int(i)])) for i in top_idx]

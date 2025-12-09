@@ -1,14 +1,15 @@
 # Zen LLM Agent
 
-A lightweight, distributed text generation system. Send prompts to a router, which forwards them to healthy workers running language models.
+A lightweight, distributed retrieval system using DPR (Dense Passage Retrieval). Send prompts to a router, which forwards them to healthy workers running DPR models for semantic search over PDF documents.
 
 ## What You Get
 
+✅ **DPR-based Retrieval** - Separate question and context encoders for accurate semantic search  
 ✅ **Distributed** - Multiple workers share the load  
 ✅ **Reliable** - Automatic failover and retries  
 ✅ **Observable** - Built-in logging and error tracking  
 ✅ **Simple** - ~500 lines of clean code  
-✅ **Fast** - Ready in seconds, inference in 1-5 seconds  
+✅ **Fast** - Ready in seconds, retrieval in 1-5 seconds  
 
 ## 30-Second Start
 
@@ -38,14 +39,22 @@ make down
 ```bash
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"prompt": "Hello, world!"}'
+  -d '{"prompt": "What are the main findings?"}'
 ```
 
 Response:
 ```json
 {
-  "response": "Hello, world! How can I help you today?",
-  "model": "distilgpt2"
+  "results": [
+    {
+      "passage": "The main findings show that...",
+      "score": 0.92
+    },
+    {
+      "passage": "Another key result was...",
+      "score": 0.87
+    }
+  ]
 }
 ```
 
@@ -71,14 +80,16 @@ cp .env.example .env
 ```
 
 Key settings:
-- `MODEL_NAME` - Which model to use (default: `distilgpt2`)
+- `DPR_QUESTION_ENCODER` - Question encoder model (default: `facebook/dpr-question_encoder-single-nq-base`)
+- `DPR_CONTEXT_ENCODER` - Context encoder model (default: `facebook/dpr-ctx_encoder-single-nq-base`)
+- `ENCODE_BATCH` - Batch size for encoding (default: 32)
 - `REQUEST_TIMEOUT` - Seconds to wait for response (default: 30)
 - `LOG_LEVEL` - How much to log (default: INFO)
 
 ## What's Running?
 
 - **Router** (port 8000): Receives requests, picks a worker
-- **Worker 1** (port 5000): Runs the language model
+- **Worker 1** (port 5000): Runs DPR models for semantic retrieval over PDFs
 - **Worker 2** (port 5000): Backup worker for redundancy
 
 All three run in Docker containers.
@@ -87,10 +98,10 @@ All three run in Docker containers.
 
 | File | Purpose |
 |------|---------|
-| `router/app.py` | Request routing (85 lines) |
-| `worker/app.py` | Text generation (69 lines) |
+| `router/app.py` | Request routing (123 lines) |
+| `worker/app.py` | DPR-based retrieval (273 lines) |
 | `utils/logging_config.py` | Logging setup (52 lines) |
-| `config.py` | Configuration (23 lines) |
+| `config.py` | Configuration (30 lines) |
 | `docker-compose.yml` | Local deployment |
 | `swarm-stack.yml` | Distributed deployment |
 
