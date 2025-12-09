@@ -27,14 +27,11 @@ MAX_LENGTH = int(os.getenv("MAX_LENGTH", 100))
 TEMPERATURE = float(os.getenv("TEMPERATURE", 0.7))
 DO_SAMPLE = os.getenv("DO_SAMPLE", "True").lower() == "true"
 
-# Ensure all required variables are set
-required_vars = [
-    "DEBUG", "LOG_LEVEL", "LOGS_DIR",
-    "HOST", "PORT", "WORKER_URLS", "WORKER_SERVICE", "WORKER_PORT",
-    "HEALTH_TIMEOUT", "REQUEST_TIMEOUT", "MAX_RETRIES",
-    "MODEL_NAME", "MAX_LENGTH", "TEMPERATURE", "DO_SAMPLE"
-]
+# DPR Models
+DPR_QUESTION_ENCODER = os.getenv("DPR_QUESTION_ENCODER", "facebook/dpr-question_encoder-single-nq-base")
+DPR_CONTEXT_ENCODER = os.getenv("DPR_CONTEXT_ENCODER", "facebook/dpr-ctx_encoder-single-nq-base")
+PDF_DIR = os.getenv("PDF_DIR", "pdf_corpus")
+DATA_DIR = os.getenv("DATA_DIR", "data")
+ENCODE_BATCH = int(os.getenv("ENCODE_BATCH", "32"))
 
-for var in required_vars:
-    if os.getenv(var) is None:
-        raise EnvironmentError(f"Required environment variable '{var}' is not set.")
+# All variables have defaults, so no need for strict checking
