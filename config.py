@@ -30,6 +30,6 @@ DO_SAMPLE = os.getenv("DO_SAMPLE", "True").lower() == "true"
 # DPR Models
 DPR_QUESTION_ENCODER = os.getenv("DPR_QUESTION_ENCODER", "facebook/dpr-question_encoder-single-nq-base")
 DPR_CONTEXT_ENCODER = os.getenv("DPR_CONTEXT_ENCODER", "facebook/dpr-ctx_encoder-single-nq-base")
-ENCODE_BATCH = int(os.getenv("ENCODE_BATCH", 32))
+ENCODE_BATCH = int(os.getenv("ENCODE_BATCH", "32"))
 
 

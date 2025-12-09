@@ -54,7 +54,11 @@ corpus_embeddings: Optional[np.ndarray] = None
 
 
 def load_dpr_models() -> Tuple[AutoModel, AutoTokenizer, AutoModel, AutoTokenizer]:
-    """Load DPR question and context encoders (once)."""
+    """Load DPR question and context encoders (once).
+    
+    Returns:
+        Tuple of (question_encoder, question_tokenizer, context_encoder, context_tokenizer)
+    """
     global _question_encoder, _question_tokenizer, _context_encoder, _context_tokenizer
     
     if _question_encoder is None:
@@ -105,8 +109,8 @@ def encode_passages(passages: List[str]) -> np.ndarray:
         # Encode
         with torch.no_grad():
             outputs = ctx_model(**inputs)
-            # Use pooler_output (CLS token representation)
-            batch_embeddings = outputs.pooler_output.cpu().numpy()
+            # Use CLS token (first token) from last hidden state for DPR models
+            batch_embeddings = outputs.last_hidden_state[:, 0, :].cpu().numpy()
         
         embeddings_list.append(batch_embeddings)
         
@@ -141,8 +145,8 @@ def encode_question(question: str) -> np.ndarray:
     # Encode
     with torch.no_grad():
         outputs = q_model(**inputs)
-        # Use pooler_output (CLS token representation)
-        embedding = outputs.pooler_output.cpu().numpy()[0]
+        # Use CLS token (first token) from last hidden state for DPR models
+        embedding = outputs.last_hidden_state[0, 0, :].cpu().numpy()
     
     # Normalize for cosine similarity
     norm = np.linalg.norm(embedding)
