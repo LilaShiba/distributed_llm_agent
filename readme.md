@@ -1,4 +1,4 @@
-# Zen LLM Agent
+# LLM Agent
 
 A lightweight, distributed retrieval system using Dense Passage Retrieval (DPR). Send prompts to a router, which forwards them to healthy workers running DPR models for PDF document retrieval.
 
@@ -11,7 +11,7 @@ A lightweight, distributed retrieval system using Dense Passage Retrieval (DPR).
 ✅ **Fast** - Ready in seconds, retrieval in 1-5 seconds  
 ✅ **DPR-Powered** - Facebook's Dense Passage Retrieval for accurate document retrieval  
 
-## 30-Second Start
+## Start
 
 ```bash
 # 1. Build
