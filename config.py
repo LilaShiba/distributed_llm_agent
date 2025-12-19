@@ -9,12 +9,12 @@ LOGS_DIR = os.getenv("LOGS_DIR", "logs")
 
 # Network
 HOST = os.getenv("HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", 5000))
+PORT = int(os.getenv("PORT", 5001))
 WORKER_URLS = os.getenv(
     "WORKER_URLS", "http://worker1:5000,http://worker2:5000"
 )
 WORKER_SERVICE = os.getenv("WORKER_SERVICE", "")
-WORKER_PORT = int(os.getenv("WORKER_PORT", 5000))
+WORKER_PORT = int(os.getenv("WORKER_PORT", 5001))
 
 # Timeouts (seconds)
 HEALTH_TIMEOUT = int(os.getenv("HEALTH_TIMEOUT", 2))

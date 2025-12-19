@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
+pet/
 env/
 venv/
 ENV/
@@ -45,3 +46,4 @@ docker-compose.override.yml
 # OS
 .DS_Store
 Thumbs.db
+
