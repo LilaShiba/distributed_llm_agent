@@ -260,6 +260,7 @@ def prepare_corpus() -> None:
             all_embeddings.append(vecs)
 
     corpus_embeddings = np.vstack(all_embeddings)
+    print("Saving chunks, embeddings, and meta data")
     save_persisted(corpus_chunks, corpus_embeddings, current_meta)
 
 

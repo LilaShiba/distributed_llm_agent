@@ -21,8 +21,7 @@ Test Swarm on your local machine first:
 docker swarm init
 
 # Build images
-docker build -t llm-router:latest ./router
-docker build -t llm-worker:latest ./worker
+idocker build -t llm-worker:latest ./worker
 
 # Deploy
 docker stack deploy -c swarm-stack.yml llm_agent
@@ -45,17 +44,17 @@ docker stack rm llm_agent
 
 - Docker installed on all machines
 - All machines can reach each other (same network)
-- Manager machine has IP address (e.g., `192.168.1.10`)
+- Manager machine has IP address (e.g., `xxx.xxx.x.10`)
 
 ### Step 1: Initialize Manager
 
 On the **manager machine** only:
 
 ```bash
-docker swarm init --advertise-addr 192.168.1.10
+docker swarm init --advertise-addr xxx.xxx.x.10
 ```
 
-Replace `192.168.1.10` with your manager's IP address.
+Replace `xxx.xxx.1.10` with your manager's IP address.
 
 Copy the output. You'll see:
 
@@ -74,7 +73,7 @@ To add a manager to this swarm, run 'docker swarm join-token manager' and follow
 On each worker node, run the join command from the manager's output:
 
 ```bash
-docker swarm join --token SWMTKN-1-0g... 192.168.1.10:2377
+docker swarm join --token SWMTKN-1-0g... xxx.xxx.1.1:2377
 ```
 
 ### Step 3: Verify Cluster
